@@ -21,13 +21,15 @@ const getOrCreateEncryptionKey = (): string => {
     const characters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let result = '';
-    
+
     // TODO 2. Use Math.random() with current timestamp for React Native compatibility
     // Note: For production, consider using expo-crypto or react-native-crypto for better security
     const randomSeed = Date.now() + Math.random();
-    
+
     for (let i = 0; i < 64; i++) {
-      const randomIndex = Math.floor((Math.random() + randomSeed) * characters.length) % characters.length;
+      const randomIndex =
+        Math.floor((Math.random() + randomSeed) * characters.length) %
+        characters.length;
       result += characters.charAt(randomIndex);
     }
 

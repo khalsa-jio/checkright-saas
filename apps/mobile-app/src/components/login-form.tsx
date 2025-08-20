@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as z from 'zod';
 
-import { Button, ControlledInput, Text, View } from '@/components/ui';
 import { SocialLogin } from '@/components/social-login';
+import { Button, ControlledInput, Text, View } from '@/components/ui';
 
 const schema = z.object({
   name: z.string().optional(),
@@ -30,8 +30,8 @@ export type LoginFormProps = {
   onSocialLoginError?: (error: string) => void;
 };
 
-export const LoginForm = ({ 
-  onSubmit = () => {}, 
+export const LoginForm = ({
+  onSubmit = () => {},
   onSocialLoginSuccess = () => {},
   onSocialLoginError = () => {},
 }: LoginFormProps) => {

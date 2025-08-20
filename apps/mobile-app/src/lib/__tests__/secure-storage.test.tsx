@@ -1,7 +1,11 @@
-import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
 
-import { secureStorage, secureTokenStorage, SecureTokens } from '../secure-storage';
+import {
+  secureStorage,
+  type SecureTokens,
+  secureTokenStorage,
+} from '../secure-storage';
 
 // Mock implementation tracking
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
@@ -23,7 +27,7 @@ describe('SecureStorage', () => {
     it('should store item with correct key prefix and options', async () => {
       await secureStorage.setItem(testKey, testValue, {
         requireAuthentication: true,
-        accessGroup: 'test-group'
+        accessGroup: 'test-group',
       });
 
       expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
@@ -31,7 +35,7 @@ describe('SecureStorage', () => {
         JSON.stringify(testValue),
         {
           requireAuthentication: true,
-          accessGroup: 'test-group'
+          accessGroup: 'test-group',
         }
       );
     });
@@ -44,7 +48,7 @@ describe('SecureStorage', () => {
         JSON.stringify(testValue),
         {
           requireAuthentication: false,
-          accessGroup: undefined
+          accessGroup: undefined,
         }
       );
     });
@@ -53,15 +57,16 @@ describe('SecureStorage', () => {
       const error = new Error('Storage failed');
       mockSecureStore.setItemAsync.mockRejectedValue(error);
 
-      await expect(secureStorage.setItem(testKey, testValue))
-        .rejects.toThrow('Failed to securely store test_key');
+      await expect(secureStorage.setItem(testKey, testValue)).rejects.toThrow(
+        'Failed to securely store test_key'
+      );
     });
 
     it('should handle complex objects correctly', async () => {
       const complexObject = {
         user: { id: 1, name: 'Test User' },
         settings: { theme: 'dark', notifications: true },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       await secureStorage.setItem(testKey, complexObject);
@@ -81,7 +86,9 @@ describe('SecureStorage', () => {
 
       const result = await secureStorage.getItem(testKey);
 
-      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('checkright_secure_test_key');
+      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith(
+        'checkright_secure_test_key'
+      );
       expect(result).toEqual(testValue);
     });
 
@@ -94,7 +101,9 @@ describe('SecureStorage', () => {
     });
 
     it('should handle retrieval errors gracefully', async () => {
-      mockSecureStore.getItemAsync.mockRejectedValue(new Error('Retrieval failed'));
+      mockSecureStore.getItemAsync.mockRejectedValue(
+        new Error('Retrieval failed')
+      );
 
       const result = await secureStorage.getItem(testKey);
 
@@ -114,14 +123,19 @@ describe('SecureStorage', () => {
     it('should remove item with correct key', async () => {
       await secureStorage.removeItem(testKey);
 
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('checkright_secure_test_key');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'checkright_secure_test_key'
+      );
     });
 
     it('should handle removal errors', async () => {
-      mockSecureStore.deleteItemAsync.mockRejectedValue(new Error('Removal failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValue(
+        new Error('Removal failed')
+      );
 
-      await expect(secureStorage.removeItem(testKey))
-        .rejects.toThrow('Failed to remove test_key from secure storage');
+      await expect(secureStorage.removeItem(testKey)).rejects.toThrow(
+        'Failed to remove test_key from secure storage'
+      );
     });
   });
 
@@ -155,7 +169,7 @@ describe('SecureStorage', () => {
     it('should generate new device ID when none exists', async () => {
       // Mock no existing device ID
       mockSecureStore.getItemAsync.mockResolvedValue(null);
-      
+
       // Mock crypto operations
       const mockRandomBytes = new Uint8Array([1, 2, 3, 4, 5]);
       mockCrypto.getRandomBytesAsync.mockResolvedValue(mockRandomBytes);
@@ -189,10 +203,13 @@ describe('SecureStorage', () => {
 
     it('should handle device ID generation errors', async () => {
       mockSecureStore.getItemAsync.mockResolvedValue(null);
-      mockCrypto.getRandomBytesAsync.mockRejectedValue(new Error('Crypto failed'));
+      mockCrypto.getRandomBytesAsync.mockRejectedValue(
+        new Error('Crypto failed')
+      );
 
-      await expect(secureStorage.generateDeviceId())
-        .rejects.toThrow('Failed to generate secure device identifier');
+      await expect(secureStorage.generateDeviceId()).rejects.toThrow(
+        'Failed to generate secure device identifier'
+      );
     });
   });
 
@@ -206,18 +223,20 @@ describe('SecureStorage', () => {
         'checkright_secure_biometric_key',
         'checkright_secure_device_secret',
         'checkright_secure_refresh_token',
-        'checkright_secure_access_token'
+        'checkright_secure_access_token',
       ];
 
       expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledTimes(6);
-      expectedKeys.forEach(key => {
+      expectedKeys.forEach((key) => {
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(key);
       });
     });
 
     it('should continue clearing even if individual removal fails', async () => {
       // Make first removal fail
-      mockSecureStore.deleteItemAsync.mockRejectedValueOnce(new Error('First removal failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValueOnce(
+        new Error('First removal failed')
+      );
 
       // Should not throw error and continue with other removals
       await expect(secureStorage.clearAll()).resolves.not.toThrow();
@@ -234,7 +253,7 @@ describe('secureTokenStorage', () => {
     expiresAt: '2024-12-31T23:59:59Z',
     refreshExpiresAt: '2025-01-07T23:59:59Z',
     deviceId: 'device_abc123',
-    tokenType: 'Bearer'
+    tokenType: 'Bearer',
   };
 
   beforeEach(() => {
@@ -253,7 +272,7 @@ describe('secureTokenStorage', () => {
         JSON.stringify(mockTokens),
         {
           requireAuthentication: true,
-          accessGroup: undefined
+          accessGroup: undefined,
         }
       );
     });
@@ -261,11 +280,15 @@ describe('secureTokenStorage', () => {
 
   describe('getTokens', () => {
     it('should retrieve stored tokens', async () => {
-      mockSecureStore.getItemAsync.mockResolvedValue(JSON.stringify(mockTokens));
+      mockSecureStore.getItemAsync.mockResolvedValue(
+        JSON.stringify(mockTokens)
+      );
 
       const result = await secureTokenStorage.getTokens();
 
-      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('checkright_secure_auth_tokens');
+      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith(
+        'checkright_secure_auth_tokens'
+      );
       expect(result).toEqual(mockTokens);
     });
 
@@ -282,13 +305,17 @@ describe('secureTokenStorage', () => {
     it('should remove authentication tokens', async () => {
       await secureTokenStorage.removeTokens();
 
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('checkright_secure_auth_tokens');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'checkright_secure_auth_tokens'
+      );
     });
   });
 
   describe('hasTokens', () => {
     it('should return true when tokens exist', async () => {
-      mockSecureStore.getItemAsync.mockResolvedValue(JSON.stringify(mockTokens));
+      mockSecureStore.getItemAsync.mockResolvedValue(
+        JSON.stringify(mockTokens)
+      );
 
       const result = await secureTokenStorage.hasTokens();
 
@@ -311,7 +338,9 @@ describe('secureTokenStorage', () => {
       expect(mockSecureStore.setItemAsync).toHaveBeenCalledTimes(1);
 
       // Verify tokens exist
-      mockSecureStore.getItemAsync.mockResolvedValue(JSON.stringify(mockTokens));
+      mockSecureStore.getItemAsync.mockResolvedValue(
+        JSON.stringify(mockTokens)
+      );
       const hasTokens = await secureTokenStorage.hasTokens();
       expect(hasTokens).toBe(true);
 
@@ -321,7 +350,9 @@ describe('secureTokenStorage', () => {
 
       // Remove tokens
       await secureTokenStorage.removeTokens();
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('checkright_secure_auth_tokens');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'checkright_secure_auth_tokens'
+      );
     });
   });
 });

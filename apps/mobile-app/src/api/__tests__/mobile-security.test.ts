@@ -1,16 +1,16 @@
 import * as Crypto from 'expo-crypto';
 
-import { secureStorage, secureTokenStorage, SecureTokens } from '@/lib/secure-storage';
+import type { SecureTokens } from '@/lib/secure-storage';
+import { secureStorage, secureTokenStorage } from '@/lib/secure-storage';
 
 import { client } from '../common/client';
-import {
-  mobileSecurityAPI,
-  DeviceRegistrationRequest,
+import type {
+  DeviceInfo,
   DeviceRegistrationResponse,
   TokenGenerationResponse,
   TokenValidationResponse,
-  DeviceInfo,
 } from '../mobile-security';
+import { mobileSecurityAPI } from '../mobile-security';
 
 // Mock dependencies
 jest.mock('@/lib/secure-storage');
@@ -18,7 +18,9 @@ jest.mock('../common/client');
 jest.mock('expo-crypto');
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
-const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<typeof secureTokenStorage>;
+const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<
+  typeof secureTokenStorage
+>;
 const mockClient = client as jest.Mocked<typeof client>;
 const mockCrypto = Crypto as jest.Mocked<typeof Crypto>;
 
@@ -41,7 +43,7 @@ describe('MobileSecurityAPI', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     mockSecureStorage.generateDeviceId.mockResolvedValue(mockDeviceId);
     mockSecureStorage.getItem.mockResolvedValue(mockDeviceSecret);
@@ -49,13 +51,13 @@ describe('MobileSecurityAPI', () => {
     mockSecureTokenStorage.getTokens.mockResolvedValue(mockTokens);
     mockSecureTokenStorage.setTokens.mockResolvedValue(undefined);
     mockSecureTokenStorage.removeTokens.mockResolvedValue(undefined);
-    
+
     // Mock crypto functions
     mockCrypto.digestStringAsync.mockResolvedValue(mockSignature);
     mockCrypto.getRandomBytesAsync.mockResolvedValue(
       new Uint8Array([0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef])
     );
-    
+
     // Mock client responses
     mockClient.post.mockResolvedValue({ data: {} });
     mockClient.get.mockResolvedValue({ data: {} });
@@ -362,7 +364,9 @@ describe('MobileSecurityAPI', () => {
 
   describe('Token Revocation', () => {
     it('should revoke device tokens', async () => {
-      mockClient.delete.mockResolvedValue({ data: { message: 'Tokens revoked' } });
+      mockClient.delete.mockResolvedValue({
+        data: { message: 'Tokens revoked' },
+      });
 
       await mobileSecurityAPI.revokeDeviceTokens();
 
@@ -495,7 +499,9 @@ describe('MobileSecurityAPI', () => {
       api.deviceId = mockDeviceId;
       api.deviceSecret = mockDeviceSecret;
 
-      const headers = await api.createSecureHeaders('POST', '/api/test', { data: 'test' });
+      const headers = await api.createSecureHeaders('POST', '/api/test', {
+        data: 'test',
+      });
 
       expect(headers).toEqual(
         expect.objectContaining({
@@ -536,21 +542,23 @@ describe('MobileSecurityAPI', () => {
       // Since the singleton is already created, we can't test the exact constructor call
       // But we can verify that the device was initialized by checking if the device ID exists
       const api = mobileSecurityAPI as any;
-      
+
       // The constructor should have called initializeDevice asynchronously
       // Since it's async, we need to wait a bit for it to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       // Verify that device initialization was attempted (deviceId should be set)
       expect(api.deviceId).toBeDefined();
-      
+
       // Note: Since the singleton was created before test setup, we can't assert
       // the exact mock calls, but we can verify the initialization worked
     });
 
     it('should handle device initialization failure gracefully', async () => {
-      mockSecureStorage.generateDeviceId.mockRejectedValue(new Error('Init failed'));
-      
+      mockSecureStorage.generateDeviceId.mockRejectedValue(
+        new Error('Init failed')
+      );
+
       // Should not throw during construction
       expect(() => {
         // Access private method to test error handling
@@ -584,8 +592,10 @@ describe('MobileSecurityAPI', () => {
     });
 
     it('should handle crypto operation failures', async () => {
-      mockCrypto.digestStringAsync.mockRejectedValue(new Error('Crypto failed'));
-      
+      mockCrypto.digestStringAsync.mockRejectedValue(
+        new Error('Crypto failed')
+      );
+
       const api = mobileSecurityAPI as any;
       api.deviceSecret = mockDeviceSecret;
 
@@ -605,11 +615,11 @@ describe('MobileSecurityAPI', () => {
       // Since the singleton was created before tests, we can't test dynamic env var loading
       // But we can verify that the API_KEY property exists and has the expected fallback
       const api = mobileSecurityAPI as any;
-      
+
       // The API_KEY should be either the env var or the fallback value
       expect(api.API_KEY).toBeDefined();
       expect(typeof api.API_KEY).toBe('string');
-      
+
       // Since we can't change the env var for the existing singleton,
       // we verify it has a reasonable value (either env or fallback)
       expect(api.API_KEY.length).toBeGreaterThan(0);

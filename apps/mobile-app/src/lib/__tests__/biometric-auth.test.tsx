@@ -1,16 +1,18 @@
-import { renderHook, act } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Alert } from 'react-native';
 
-import { 
-  biometricAuth, 
-  useBiometricAuth, 
-  BiometricAuthResult, 
-  BiometricCapabilities 
+import {
+  biometricAuth,
+  type BiometricAuthResult,
+  type BiometricCapabilities,
+  useBiometricAuth,
 } from '../biometric-auth';
 
 // Mock implementations
-const mockLocalAuth = LocalAuthentication as jest.Mocked<typeof LocalAuthentication>;
+const mockLocalAuth = LocalAuthentication as jest.Mocked<
+  typeof LocalAuthentication
+>;
 const mockAlert = Alert as jest.Mocked<typeof Alert>;
 
 describe('BiometricAuth', () => {
@@ -20,7 +22,7 @@ describe('BiometricAuth', () => {
     mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
     mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
     mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-      LocalAuthentication.AuthenticationType.FINGERPRINT
+      LocalAuthentication.AuthenticationType.FINGERPRINT,
     ]);
     mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
   });
@@ -29,34 +31,40 @@ describe('BiometricAuth', () => {
     it('should return device biometric capabilities', async () => {
       const expectedTypes = [
         LocalAuthentication.AuthenticationType.FINGERPRINT,
-        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
       ];
-      
+
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(expectedTypes);
+      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(
+        expectedTypes
+      );
 
       const capabilities = await biometricAuth.getCapabilities();
 
       expect(capabilities).toEqual({
         hasHardware: true,
         isEnrolled: true,
-        availableTypes: expectedTypes
+        availableTypes: expectedTypes,
       });
       expect(mockLocalAuth.hasHardwareAsync).toHaveBeenCalledTimes(1);
       expect(mockLocalAuth.isEnrolledAsync).toHaveBeenCalledTimes(1);
-      expect(mockLocalAuth.supportedAuthenticationTypesAsync).toHaveBeenCalledTimes(1);
+      expect(
+        mockLocalAuth.supportedAuthenticationTypesAsync
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should handle capability check errors gracefully', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Hardware check failed'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Hardware check failed')
+      );
 
       const capabilities = await biometricAuth.getCapabilities();
 
       expect(capabilities).toEqual({
         hasHardware: false,
         isEnrolled: false,
-        availableTypes: []
+        availableTypes: [],
       });
     });
 
@@ -102,7 +110,9 @@ describe('BiometricAuth', () => {
     });
 
     it('should handle availability check errors', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Availability check failed'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Availability check failed')
+      );
 
       const isAvailable = await biometricAuth.isAvailable();
 
@@ -115,7 +125,7 @@ describe('BiometricAuth', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
       ]);
 
       const description = await biometricAuth.getBiometricDescription();
@@ -127,7 +137,7 @@ describe('BiometricAuth', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
 
       const description = await biometricAuth.getBiometricDescription();
@@ -139,7 +149,7 @@ describe('BiometricAuth', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.IRIS
+        LocalAuthentication.AuthenticationType.IRIS,
       ]);
 
       const description = await biometricAuth.getBiometricDescription();
@@ -165,7 +175,9 @@ describe('BiometricAuth', () => {
     });
 
     it('should handle description errors gracefully', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Description error'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Description error')
+      );
 
       const description = await biometricAuth.getBiometricDescription();
 
@@ -177,7 +189,7 @@ describe('BiometricAuth', () => {
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
         LocalAuthentication.AuthenticationType.FINGERPRINT,
-        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
       ]);
 
       const description = await biometricAuth.getBiometricDescription();
@@ -200,7 +212,7 @@ describe('BiometricAuth', () => {
         promptMessage: 'Please verify your identity',
         cancelLabel: 'Cancel',
         fallbackLabel: 'Use passcode',
-        disableDeviceFallback: false
+        disableDeviceFallback: false,
       });
     });
 
@@ -217,7 +229,7 @@ describe('BiometricAuth', () => {
         promptMessage: customReason,
         cancelLabel: 'Cancel',
         fallbackLabel: 'Use passcode',
-        disableDeviceFallback: false
+        disableDeviceFallback: false,
       });
     });
 
@@ -227,32 +239,38 @@ describe('BiometricAuth', () => {
       const result = await biometricAuth.authenticate();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Biometric authentication is not available on this device');
+      expect(result.error).toBe(
+        'Biometric authentication is not available on this device'
+      );
     });
 
     it('should handle authentication failure', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.authenticateAsync.mockResolvedValue({ 
-        success: false, 
-        error: 'User canceled authentication' 
+      mockLocalAuth.authenticateAsync.mockResolvedValue({
+        success: false,
+        error: 'user_cancel',
       });
 
       const result = await biometricAuth.authenticate();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('User canceled authentication');
+      expect(result.error).toBe('user_cancel');
     });
 
     it('should handle authentication exception', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.authenticateAsync.mockRejectedValue(new Error('Authentication exception'));
+      mockLocalAuth.authenticateAsync.mockRejectedValue(
+        new Error('Authentication exception')
+      );
 
       const result = await biometricAuth.authenticate();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Authentication failed due to an unexpected error');
+      expect(result.error).toBe(
+        'Authentication failed due to an unexpected error'
+      );
     });
   });
 
@@ -261,7 +279,7 @@ describe('BiometricAuth', () => {
       promptMessage: 'Custom prompt',
       cancelLabel: 'Cancel Authentication',
       fallbackLabel: 'Use PIN',
-      disableDeviceFallback: true
+      disableDeviceFallback: true,
     };
 
     it('should authenticate with custom options', async () => {
@@ -272,7 +290,9 @@ describe('BiometricAuth', () => {
       const result = await biometricAuth.authenticateWithOptions(customOptions);
 
       expect(result.success).toBe(true);
-      expect(mockLocalAuth.authenticateAsync).toHaveBeenCalledWith(customOptions);
+      expect(mockLocalAuth.authenticateAsync).toHaveBeenCalledWith(
+        customOptions
+      );
     });
 
     it('should fail with custom options when not available', async () => {
@@ -287,15 +307,15 @@ describe('BiometricAuth', () => {
     it('should handle custom options authentication failure', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.authenticateAsync.mockResolvedValue({ 
-        success: false, 
-        error: 'Custom authentication failed' 
+      mockLocalAuth.authenticateAsync.mockResolvedValue({
+        success: false,
+        error: 'authentication_failed',
       });
 
       const result = await biometricAuth.authenticateWithOptions(customOptions);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Custom authentication failed');
+      expect(result.error).toBe('authentication_failed');
     });
   });
 
@@ -305,7 +325,7 @@ describe('BiometricAuth', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
       mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
 
@@ -316,7 +336,7 @@ describe('BiometricAuth', () => {
         promptMessage: 'Use Fingerprint to access financial data',
         cancelLabel: 'Cancel',
         fallbackLabel: 'Use passcode',
-        disableDeviceFallback: false
+        disableDeviceFallback: false,
       });
     });
 
@@ -324,9 +344,9 @@ describe('BiometricAuth', () => {
       const operation = 'delete account';
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.authenticateAsync.mockResolvedValue({ 
-        success: false, 
-        error: 'Authentication failed' 
+      mockLocalAuth.authenticateAsync.mockResolvedValue({
+        success: false,
+        error: 'authentication_failed',
       });
 
       const result = await biometricAuth.promptForSensitiveOperation(operation);
@@ -334,15 +354,18 @@ describe('BiometricAuth', () => {
       expect(result).toBe(false);
       expect(mockAlert.alert).toHaveBeenCalledWith(
         'Authentication Failed',
-        'Authentication failed',
+        'authentication_failed',
         [{ text: 'OK' }]
       );
     });
 
     it('should handle sensitive operation errors', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Sensitive operation error'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Sensitive operation error')
+      );
 
-      const result = await biometricAuth.promptForSensitiveOperation('test operation');
+      const result =
+        await biometricAuth.promptForSensitiveOperation('test operation');
 
       expect(result).toBe(false);
     });
@@ -357,12 +380,15 @@ describe('BiometricAuth', () => {
       const result = await biometricAuth.setupBiometricAuth();
 
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Biometric authentication successfully enabled');
+      expect(result.message).toBe(
+        'Biometric authentication successfully enabled'
+      );
       expect(mockLocalAuth.authenticateAsync).toHaveBeenCalledWith({
-        promptMessage: 'Verify your identity to enable biometric authentication for this app',
+        promptMessage:
+          'Verify your identity to enable biometric authentication for this app',
         cancelLabel: 'Cancel',
         fallbackLabel: 'Use passcode',
-        disableDeviceFallback: false
+        disableDeviceFallback: false,
       });
     });
 
@@ -372,7 +398,9 @@ describe('BiometricAuth', () => {
       const result = await biometricAuth.setupBiometricAuth();
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('This device does not support biometric authentication');
+      expect(result.message).toBe(
+        'This device does not support biometric authentication'
+      );
     });
 
     it('should fail setup when not enrolled', async () => {
@@ -382,30 +410,36 @@ describe('BiometricAuth', () => {
       const result = await biometricAuth.setupBiometricAuth();
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('Please set up biometric authentication in your device settings first');
+      expect(result.message).toBe(
+        'Please set up biometric authentication in your device settings first'
+      );
     });
 
     it('should fail setup when authentication fails', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
-      mockLocalAuth.authenticateAsync.mockResolvedValue({ 
-        success: false, 
-        error: 'Setup authentication failed' 
+      mockLocalAuth.authenticateAsync.mockResolvedValue({
+        success: false,
+        error: 'authentication_failed',
       });
 
       const result = await biometricAuth.setupBiometricAuth();
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('Setup authentication failed');
+      expect(result.message).toBe('authentication_failed');
     });
 
     it('should handle setup errors', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Setup error'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Setup error')
+      );
 
       const result = await biometricAuth.setupBiometricAuth();
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('This device does not support biometric authentication');
+      expect(result.message).toBe(
+        'This device does not support biometric authentication'
+      );
     });
   });
 });
@@ -416,7 +450,7 @@ describe('useBiometricAuth hook', () => {
     mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
     mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
     mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-      LocalAuthentication.AuthenticationType.FINGERPRINT
+      LocalAuthentication.AuthenticationType.FINGERPRINT,
     ]);
     mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
   });
@@ -447,7 +481,7 @@ describe('useBiometricAuth hook', () => {
       promptMessage: reason,
       cancelLabel: 'Cancel',
       fallbackLabel: 'Use passcode',
-      disableDeviceFallback: false
+      disableDeviceFallback: false,
     });
   });
 
@@ -462,7 +496,7 @@ describe('useBiometricAuth hook', () => {
     expect(capabilities!).toEqual({
       hasHardware: true,
       isEnrolled: true,
-      availableTypes: [LocalAuthentication.AuthenticationType.FINGERPRINT]
+      availableTypes: [LocalAuthentication.AuthenticationType.FINGERPRINT],
     });
   });
 
@@ -482,7 +516,8 @@ describe('useBiometricAuth hook', () => {
 
     let operationResult: boolean;
     await act(async () => {
-      operationResult = await result.current.promptForSensitiveOperation('test operation');
+      operationResult =
+        await result.current.promptForSensitiveOperation('test operation');
     });
 
     expect(operationResult!).toBe(true);
@@ -497,7 +532,9 @@ describe('useBiometricAuth hook', () => {
     });
 
     expect(setupResult!.success).toBe(true);
-    expect(setupResult!.message).toBe('Biometric authentication successfully enabled');
+    expect(setupResult!.message).toBe(
+      'Biometric authentication successfully enabled'
+    );
   });
 
   it('should handle hook authentication with different scenarios', async () => {
@@ -505,20 +542,22 @@ describe('useBiometricAuth hook', () => {
 
     // Test successful authentication
     await act(async () => {
-      const authResult = await result.current.authenticate('Access secure data');
+      const authResult =
+        await result.current.authenticate('Access secure data');
       expect(authResult.success).toBe(true);
     });
 
     // Test failed authentication
-    mockLocalAuth.authenticateAsync.mockResolvedValueOnce({ 
-      success: false, 
-      error: 'User cancelled' 
+    mockLocalAuth.authenticateAsync.mockResolvedValueOnce({
+      success: false,
+      error: 'user_cancel',
     });
 
     await act(async () => {
-      const authResult = await result.current.authenticate('Access secure data');
+      const authResult =
+        await result.current.authenticate('Access secure data');
       expect(authResult.success).toBe(false);
-      expect(authResult.error).toBe('User cancelled');
+      expect(authResult.error).toBe('user_cancel');
     });
   });
 

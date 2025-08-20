@@ -1,13 +1,13 @@
-import { renderHook, act } from '@testing-library/react-native';
-import Constants from 'expo-constants';
+import { act, renderHook } from '@testing-library/react-native';
+import Constants, { UserInterfaceIdiom } from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Localization from 'expo-localization';
 import { Dimensions, Platform } from 'react-native';
 
 import {
+  type DeviceFingerprint,
   deviceFingerprintService,
   useDeviceFingerprint,
-  DeviceFingerprint,
 } from '../device-fingerprint';
 
 // Mock dependencies
@@ -19,7 +19,8 @@ const mockDimensions = Dimensions as jest.Mocked<typeof Dimensions>;
 
 describe('DeviceFingerprintService', () => {
   const mockInstallationId = 'mock-installation-id-123';
-  const mockFingerprint = 'abcdef123456789012345678901234567890abcdef123456789012345678901234';
+  const mockFingerprint =
+    'abcdef123456789012345678901234567890abcdef123456789012345678901234';
   const mockDeviceId = 'mobile_abcdef12345678901234567890123456';
 
   beforeEach(() => {
@@ -27,11 +28,14 @@ describe('DeviceFingerprintService', () => {
     deviceFingerprintService.clearCache(); // Clear cache before each test
 
     // Mock default values - Use mockImplementation to ensure fresh calls work
-    mockCrypto.digestStringAsync.mockImplementation(async () => mockFingerprint);
+    mockCrypto.digestStringAsync.mockImplementation(
+      async () => mockFingerprint
+    );
     mockConstants.installationId = mockInstallationId;
     mockConstants.expoConfig = {
       version: '1.0.0',
       name: 'TestApp',
+      slug: 'test-app',
       extra: {
         buildNumber: '1',
       },
@@ -39,13 +43,18 @@ describe('DeviceFingerprintService', () => {
     mockConstants.platform = {
       ios: {
         model: 'iPhone',
+        buildNumber: '1',
+        platform: 'ios',
+        userInterfaceIdiom: UserInterfaceIdiom.Handset,
+        systemVersion: '17.0',
       },
       android: {
         manufacturer: 'Google',
         model: 'Pixel',
+        versionCode: 1,
       },
     };
-    
+
     // Reset these properties fresh for each test
     Object.defineProperty(mockLocalization, 'locale', {
       value: 'en-US',
@@ -57,10 +66,10 @@ describe('DeviceFingerprintService', () => {
       writable: true,
       configurable: true,
     });
-    
+
     mockPlatform.OS = 'ios';
     mockPlatform.Version = '17.0';
-    
+
     mockDimensions.get.mockReturnValue({
       width: 375,
       height: 812,
@@ -125,29 +134,35 @@ describe('DeviceFingerprintService', () => {
     });
 
     it('should handle fingerprint generation errors', async () => {
-      mockCrypto.digestStringAsync.mockRejectedValue(new Error('Crypto failed'));
-
-      await expect(deviceFingerprintService.generateFingerprint()).rejects.toThrow(
-        'Failed to generate device fingerprint'
+      mockCrypto.digestStringAsync.mockRejectedValue(
+        new Error('Crypto failed')
       );
+
+      await expect(
+        deviceFingerprintService.generateFingerprint()
+      ).rejects.toThrow('Failed to generate device fingerprint');
     });
 
     it('should generate unique fingerprints for different device configurations', async () => {
       // Clear cache first
       deviceFingerprintService.clearCache();
-      
+
       // First fingerprint - need two calls: one for device ID, one for fingerprint
-      mockCrypto.digestStringAsync.mockResolvedValueOnce(mockDeviceId.replace('mobile_', ''));
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        mockDeviceId.replace('mobile_', '')
+      );
       mockCrypto.digestStringAsync.mockResolvedValueOnce('fingerprint1');
       const fingerprint1 = await deviceFingerprintService.generateFingerprint();
 
       // Clear cache and change configuration
       deviceFingerprintService.clearCache();
-      
+
       // Second fingerprint - need two calls: one for device ID, one for fingerprint
-      mockCrypto.digestStringAsync.mockResolvedValueOnce(mockDeviceId.replace('mobile_', ''));
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        mockDeviceId.replace('mobile_', '')
+      );
       mockCrypto.digestStringAsync.mockResolvedValueOnce('fingerprint2');
-      
+
       const fingerprint2 = await deviceFingerprintService.generateFingerprint();
 
       expect(fingerprint1.fingerprint).toBe('fingerprint1');
@@ -164,6 +179,10 @@ describe('DeviceFingerprintService', () => {
       mockConstants.platform = {
         ios: {
           model: 'iPhone 15 Pro',
+          buildNumber: '1',
+          platform: 'ios',
+          userInterfaceIdiom: UserInterfaceIdiom.Handset,
+          systemVersion: '17.0',
         },
       };
 
@@ -178,6 +197,7 @@ describe('DeviceFingerprintService', () => {
         android: {
           manufacturer: 'Samsung',
           model: 'Galaxy S23',
+          versionCode: 1,
         },
       };
 
@@ -189,7 +209,13 @@ describe('DeviceFingerprintService', () => {
     it('should return fallback for iOS when model unavailable', async () => {
       mockPlatform.OS = 'ios';
       mockConstants.platform = {
-        ios: {},
+        ios: {
+          model: null,
+          buildNumber: null,
+          platform: 'ios',
+          userInterfaceIdiom: UserInterfaceIdiom.Handset,
+          systemVersion: '17.0',
+        },
       };
 
       const fingerprint = await deviceFingerprintService.generateFingerprint();
@@ -200,7 +226,11 @@ describe('DeviceFingerprintService', () => {
     it('should return fallback for Android when model unavailable', async () => {
       mockPlatform.OS = 'android';
       mockConstants.platform = {
-        android: {},
+        android: {
+          manufacturer: 'Unknown',
+          model: null,
+          versionCode: 1,
+        },
       };
 
       const fingerprint = await deviceFingerprintService.generateFingerprint();
@@ -221,7 +251,7 @@ describe('DeviceFingerprintService', () => {
     it('should generate device ID with installation ID and entropy', async () => {
       // Access private method for testing
       const service = deviceFingerprintService as any;
-      
+
       const deviceId = await service.generateDeviceId();
 
       expect(deviceId).toMatch(/^mobile_[a-f0-9]{32}$/);
@@ -234,14 +264,14 @@ describe('DeviceFingerprintService', () => {
 
     it('should include entropy in device ID generation', async () => {
       const service = deviceFingerprintService as any;
-      
+
       await service.generateDeviceId();
 
       const expectedEntropy = [
         'ios',
         '17.0',
         '375', // width
-        '812', // height  
+        '812', // height
         'en-US',
         'TestApp',
       ].join('|');
@@ -299,6 +329,8 @@ describe('DeviceFingerprintService', () => {
       mockConstants.platform = {
         android: {
           model: 'Pixel 7',
+          versionCode: 1,
+          manufacturer: 'Google',
         },
       };
       deviceFingerprintService.clearCache();
@@ -315,10 +347,10 @@ describe('DeviceFingerprintService', () => {
     it('should generate security context with hash', async () => {
       const mockTimestamp = 1640995200;
       jest.spyOn(Date, 'now').mockReturnValue(mockTimestamp * 1000);
-      
+
       // Clear cache and set up fresh mock calls
       deviceFingerprintService.clearCache();
-      
+
       // Mock separate hash for security context - need 3 calls total:
       // 1. Device ID generation, 2. Fingerprint generation, 3. Security hash
       mockCrypto.digestStringAsync
@@ -326,7 +358,8 @@ describe('DeviceFingerprintService', () => {
         .mockResolvedValueOnce(mockFingerprint) // for fingerprint
         .mockResolvedValueOnce('security_hash_123'); // for security context
 
-      const securityContext = await deviceFingerprintService.generateSecurityContext();
+      const securityContext =
+        await deviceFingerprintService.generateSecurityContext();
 
       expect(securityContext).toEqual({
         device_fingerprint: mockFingerprint,
@@ -339,31 +372,39 @@ describe('DeviceFingerprintService', () => {
     });
 
     it('should handle security context generation errors', async () => {
-      mockCrypto.digestStringAsync.mockRejectedValue(new Error('Security hash failed'));
-
-      await expect(deviceFingerprintService.generateSecurityContext()).rejects.toThrow(
-        'Failed to generate security context'
+      mockCrypto.digestStringAsync.mockRejectedValue(
+        new Error('Security hash failed')
       );
+
+      await expect(
+        deviceFingerprintService.generateSecurityContext()
+      ).rejects.toThrow('Failed to generate security context');
     });
   });
 
   describe('validateFingerprint', () => {
     it('should return true for matching fingerprints', async () => {
-      const isValid = await deviceFingerprintService.validateFingerprint(mockFingerprint);
+      const isValid =
+        await deviceFingerprintService.validateFingerprint(mockFingerprint);
 
       expect(isValid).toBe(true);
     });
 
     it('should return false for non-matching fingerprints', async () => {
-      const isValid = await deviceFingerprintService.validateFingerprint('different_fingerprint');
+      const isValid = await deviceFingerprintService.validateFingerprint(
+        'different_fingerprint'
+      );
 
       expect(isValid).toBe(false);
     });
 
     it('should handle validation errors gracefully', async () => {
-      mockCrypto.digestStringAsync.mockRejectedValue(new Error('Validation failed'));
+      mockCrypto.digestStringAsync.mockRejectedValue(
+        new Error('Validation failed')
+      );
 
-      const isValid = await deviceFingerprintService.validateFingerprint(mockFingerprint);
+      const isValid =
+        await deviceFingerprintService.validateFingerprint(mockFingerprint);
 
       expect(isValid).toBe(false);
     });
@@ -373,10 +414,10 @@ describe('DeviceFingerprintService', () => {
     it('should clear cached fingerprint', async () => {
       // Generate initial fingerprint
       await deviceFingerprintService.generateFingerprint();
-      
+
       // Clear cache
       deviceFingerprintService.clearCache();
-      
+
       // Generate again - should call crypto functions again
       await deviceFingerprintService.generateFingerprint();
 
@@ -408,9 +449,9 @@ describe('DeviceFingerprintService', () => {
         throw new Error('Dimensions error');
       });
 
-      await expect(deviceFingerprintService.generateFingerprint()).rejects.toThrow(
-        'Failed to generate device fingerprint'
-      );
+      await expect(
+        deviceFingerprintService.generateFingerprint()
+      ).rejects.toThrow('Failed to generate device fingerprint');
     });
 
     it('should handle Constants access errors', async () => {
@@ -433,17 +474,21 @@ describe('DeviceFingerprintService', () => {
     it('should generate consistent fingerprints for same device', async () => {
       // Clear cache and generate first fingerprint
       deviceFingerprintService.clearCache();
-      
+
       // Mock calls for first fingerprint generation
-      mockCrypto.digestStringAsync.mockResolvedValueOnce(mockDeviceId.replace('mobile_', ''));
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        mockDeviceId.replace('mobile_', '')
+      );
       mockCrypto.digestStringAsync.mockResolvedValueOnce(mockFingerprint);
       const fingerprint1 = await deviceFingerprintService.generateFingerprint();
-      
+
       // Clear cache and generate second fingerprint (should be same with same setup)
       deviceFingerprintService.clearCache();
-      
+
       // Mock calls for second fingerprint generation (same values for consistency)
-      mockCrypto.digestStringAsync.mockResolvedValueOnce(mockDeviceId.replace('mobile_', ''));
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        mockDeviceId.replace('mobile_', '')
+      );
       mockCrypto.digestStringAsync.mockResolvedValueOnce(mockFingerprint);
       const fingerprint2 = await deviceFingerprintService.generateFingerprint();
 
@@ -454,18 +499,24 @@ describe('DeviceFingerprintService', () => {
     it('should generate different fingerprints for different devices', async () => {
       // Clear cache and generate first fingerprint
       deviceFingerprintService.clearCache();
-      mockCrypto.digestStringAsync.mockResolvedValueOnce(mockDeviceId.replace('mobile_', ''));
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        mockDeviceId.replace('mobile_', '')
+      );
       mockCrypto.digestStringAsync.mockResolvedValueOnce(mockFingerprint);
       const fingerprint1 = await deviceFingerprintService.generateFingerprint();
-      
+
       // Change device characteristics
       deviceFingerprintService.clearCache();
       mockConstants.installationId = 'different-installation-id';
-      
+
       // Mock different values for different device
-      mockCrypto.digestStringAsync.mockResolvedValueOnce('different_device_hash_32chars_len');
-      mockCrypto.digestStringAsync.mockResolvedValueOnce('different_fingerprint');
-      
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        'different_device_hash_32chars_len'
+      );
+      mockCrypto.digestStringAsync.mockResolvedValueOnce(
+        'different_fingerprint'
+      );
+
       const fingerprint2 = await deviceFingerprintService.generateFingerprint();
 
       expect(fingerprint1.fingerprint).toBe(mockFingerprint);
@@ -477,25 +528,28 @@ describe('DeviceFingerprintService', () => {
 describe('useDeviceFingerprint hook', () => {
   const hookDeviceId = 'mobile_hook_fingerprint_hash_32chars';
   const hookFingerprint = 'hook_fingerprint';
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
     deviceFingerprintService.clearCache();
-    
+
     // Set up default mock implementation for hook tests
-    mockCrypto.digestStringAsync.mockImplementation(async (algorithm, data, options) => {
-      // Return different values based on the data being hashed
-      if (data.includes('hook-installation-id')) {
-        return hookDeviceId.replace('mobile_', '');
+    mockCrypto.digestStringAsync.mockImplementation(
+      async (algorithm, data, options) => {
+        // Return different values based on the data being hashed
+        if (data.includes('hook-installation-id')) {
+          return hookDeviceId.replace('mobile_', '');
+        }
+        return hookFingerprint;
       }
-      return hookFingerprint;
-    });
-    
+    );
+
     // Reset constants for hook tests
     mockConstants.installationId = 'hook-installation-id';
     mockConstants.expoConfig = {
       version: '1.0.0',
       name: 'TestApp',
+      slug: 'test-app',
       extra: {
         buildNumber: '1',
       },
@@ -503,9 +557,13 @@ describe('useDeviceFingerprint hook', () => {
     mockConstants.platform = {
       ios: {
         model: 'iPhone',
+        buildNumber: '1',
+        platform: 'ios',
+        userInterfaceIdiom: UserInterfaceIdiom.Handset,
+        systemVersion: '17.0',
       },
     };
-    
+
     mockPlatform.OS = 'ios';
     mockPlatform.Version = '17.0';
     mockDimensions.get.mockReturnValue({
@@ -601,7 +659,7 @@ describe('useDeviceFingerprint hook', () => {
     const { result } = renderHook(() => useDeviceFingerprint());
 
     let fingerprint1: DeviceFingerprint, fingerprint2: DeviceFingerprint;
-    
+
     await act(async () => {
       fingerprint1 = await result.current.generateFingerprint();
       // Second call should use cached result, so no additional mocks needed

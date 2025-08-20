@@ -1,6 +1,5 @@
 import '@testing-library/react-native/extend-expect';
 
-
 // react-hook form setup for testing
 // @ts-ignore
 global.window = {};
@@ -8,18 +7,21 @@ global.window = {};
 global.window = global;
 
 // Mock the entire React Native CSS Interop ecosystem
-jest.mock('react-native-css-interop/src/runtime/native/appearance-observables', () => ({
-  resetAppearanceListeners: jest.fn(),
-  addAppearanceListener: jest.fn(),
-  removeAppearanceListener: jest.fn(),
-  get globalAppearanceListeners() {
-    return [];
-  },
-  appearanceObserver: {
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  },
-}));
+jest.mock(
+  'react-native-css-interop/src/runtime/native/appearance-observables',
+  () => ({
+    resetAppearanceListeners: jest.fn(),
+    addAppearanceListener: jest.fn(),
+    removeAppearanceListener: jest.fn(),
+    get globalAppearanceListeners() {
+      return [];
+    },
+    appearanceObserver: {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+  })
+);
 
 jest.mock('react-native-css-interop/src/runtime/native/api', () => ({
   reset: jest.fn(),
@@ -82,11 +84,24 @@ jest.mock('expo-constants', () => ({
     platform: {
       ios: {
         model: 'iPhone',
+        buildNumber: '1',
+        platform: 'ios',
+        userInterfaceIdiom: 'handset',
+        systemVersion: '17.0',
       },
       android: {
         manufacturer: 'Google',
+        model: 'Pixel',
+        versionCode: 1,
       },
     },
+  },
+  UserInterfaceIdiom: {
+    Handset: 'handset',
+    Tablet: 'tablet',
+    Desktop: 'desktop',
+    TV: 'tv',
+    Unsupported: 'unsupported',
   },
 }));
 
@@ -94,6 +109,25 @@ jest.mock('expo-constants', () => ({
 jest.mock('expo-localization', () => ({
   locale: 'en-US',
   timezone: 'America/New_York',
+  getLocales: jest.fn().mockReturnValue([
+    {
+      languageTag: 'en-NZ',
+      languageCode: 'en',
+      countryCode: 'NZ',
+      currencyCode: 'NZD',
+      currencySymbol: '$',
+      decimalSeparator: '.',
+      digitGroupingSeparator: ',',
+    },
+  ]),
+  getCalendars: jest.fn().mockReturnValue([
+    {
+      calendar: 'gregorian',
+      timeZone: 'Pacific/Auckland',
+      uses24hourClock: false,
+      firstWeekday: 1,
+    },
+  ]),
 }));
 
 // Mock react-native platform and dimensions
@@ -119,7 +153,9 @@ jest.mock('react-native', () => {
       Version: '17.0',
     },
     Dimensions: {
-      get: jest.fn().mockReturnValue({ width: 375, height: 812, scale: 3, fontScale: 1 }),
+      get: jest
+        .fn()
+        .mockReturnValue({ width: 375, height: 812, scale: 3, fontScale: 1 }),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     },
@@ -209,15 +245,16 @@ jest.mock('react-hook-form', () => ({
     getValues: jest.fn(),
     reset: jest.fn(),
   }),
-  Controller: ({ render }: { render: Function }) => render({
-    field: {
-      onChange: jest.fn(),
-      onBlur: jest.fn(),
-      value: '',
-      name: 'test',
-    },
-    fieldState: { error: null },
-  }),
+  Controller: ({ render }: { render: Function }) =>
+    render({
+      field: {
+        onChange: jest.fn(),
+        onBlur: jest.fn(),
+        value: '',
+        name: 'test',
+      },
+      fieldState: { error: null },
+    }),
 }));
 
 // Mock tailwind-variants
@@ -234,7 +271,8 @@ jest.mock('tailwind-variants', () => ({
 
 // Mock @gorhom/bottom-sheet
 jest.mock('@gorhom/bottom-sheet', () => ({
-  BottomSheetModalProvider: ({ children }: { children: React.ReactNode }) => children,
+  BottomSheetModalProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
   BottomSheetModal: 'BottomSheetModal',
   BottomSheet: 'BottomSheet',
 }));

@@ -1,18 +1,16 @@
-import { renderHook, act } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { mobileSecurityAPI } from '@/api/mobile-security';
 import { biometricAuth } from '@/lib/biometric-auth';
-import { secureTokenStorage, SecureTokens } from '@/lib/secure-storage';
+import { type SecureTokens, secureTokenStorage } from '@/lib/secure-storage';
 
 import {
-  useSecureAuth,
-  signIn,
-  signOut,
   hydrateSecureAuth,
   refreshTokens,
+  signIn,
+  signOut,
   tokenRotationService,
-  SecureAuthState,
-  SecureAuthActions,
+  useSecureAuth,
 } from '../secure-auth';
 
 // Mock dependencies
@@ -20,9 +18,13 @@ jest.mock('@/api/mobile-security');
 jest.mock('@/lib/biometric-auth');
 jest.mock('@/lib/secure-storage');
 
-const mockMobileSecurityAPI = mobileSecurityAPI as jest.Mocked<typeof mobileSecurityAPI>;
+const mockMobileSecurityAPI = mobileSecurityAPI as jest.Mocked<
+  typeof mobileSecurityAPI
+>;
 const mockBiometricAuth = biometricAuth as jest.Mocked<typeof biometricAuth>;
-const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<typeof secureTokenStorage>;
+const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<
+  typeof secureTokenStorage
+>;
 
 describe('SecureAuth Zustand Store', () => {
   const mockTokens: SecureTokens = {
@@ -45,7 +47,7 @@ describe('SecureAuth Zustand Store', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     mockMobileSecurityAPI.registerDevice.mockResolvedValue({
       message: 'Device registered successfully',
@@ -53,7 +55,7 @@ describe('SecureAuth Zustand Store', () => {
       device_secret: 'secret_123',
       trust_status: 'trusted',
     });
-    
+
     mockMobileSecurityAPI.generateTokens.mockResolvedValue(mockTokens);
     mockMobileSecurityAPI.refreshTokens.mockResolvedValue(mockNewTokens);
     mockMobileSecurityAPI.validateToken.mockResolvedValue({
@@ -150,7 +152,9 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow();
       });
 
       expect(result.current.status).toBe('error');
@@ -165,7 +169,9 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow();
       });
 
       expect(result.current.status).toBe('error');
@@ -190,14 +196,16 @@ describe('SecureAuth Zustand Store', () => {
       expect(result.current.status).toBe('unauthenticated');
       expect(result.current.tokens).toBeNull();
       expect(result.current.biometricEnabled).toBe(false);
-      
+
       expect(mockMobileSecurityAPI.revokeDeviceTokens).toHaveBeenCalled();
       expect(mockSecureTokenStorage.removeTokens).toHaveBeenCalled();
     });
 
     it('should handle server token revocation failure gracefully', async () => {
-      mockMobileSecurityAPI.revokeDeviceTokens.mockRejectedValue(new Error('Server error'));
-      
+      mockMobileSecurityAPI.revokeDeviceTokens.mockRejectedValue(
+        new Error('Server error')
+      );
+
       const { result } = renderHook(() => useSecureAuth());
 
       // Sign in first
@@ -215,8 +223,10 @@ describe('SecureAuth Zustand Store', () => {
     });
 
     it('should handle local token cleanup failure', async () => {
-      mockSecureTokenStorage.removeTokens.mockRejectedValue(new Error('Storage error'));
-      
+      mockSecureTokenStorage.removeTokens.mockRejectedValue(
+        new Error('Storage error')
+      );
+
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
@@ -281,7 +291,9 @@ describe('SecureAuth Zustand Store', () => {
         token_expires_at: '2024-12-31T23:59:59Z',
         token_created_at: '2024-12-01T00:00:00Z',
       });
-      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(new Error('Refresh failed'));
+      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(
+        new Error('Refresh failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -292,7 +304,9 @@ describe('SecureAuth Zustand Store', () => {
 
       // Refresh should fail and sign out
       await act(async () => {
-        await expect(result.current.refreshTokens()).rejects.toThrow('Refresh failed');
+        await expect(result.current.refreshTokens()).rejects.toThrow(
+          'Refresh failed'
+        );
       });
 
       expect(result.current.status).toBe('unauthenticated');
@@ -303,7 +317,9 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.refreshTokens()).rejects.toThrow('No tokens available for refresh');
+        await expect(result.current.refreshTokens()).rejects.toThrow(
+          'No tokens available for refresh'
+        );
       });
     });
   });
@@ -345,7 +361,9 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.registerDevice()).rejects.toThrow('Device registration failed: Registration failed');
+        await expect(result.current.registerDevice()).rejects.toThrow(
+          'Device registration failed: Registration failed'
+        );
       });
 
       expect(result.current.deviceRegistered).toBe(false);
@@ -377,7 +395,9 @@ describe('SecureAuth Zustand Store', () => {
       });
 
       expect(result.current.biometricEnabled).toBe(false);
-      expect(result.current.error).toBe('Biometric authentication is not available on this device');
+      expect(result.current.error).toBe(
+        'Biometric authentication is not available on this device'
+      );
     });
 
     it('should handle biometric setup failure', async () => {
@@ -389,7 +409,9 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.enableBiometric()).rejects.toThrow('Setup failed');
+        await expect(result.current.enableBiometric()).rejects.toThrow(
+          'Setup failed'
+        );
       });
 
       expect(result.current.biometricEnabled).toBe(false);
@@ -531,7 +553,9 @@ describe('SecureAuth Zustand Store', () => {
     });
 
     it('should handle validation errors', async () => {
-      mockMobileSecurityAPI.validateToken.mockRejectedValue(new Error('Validation failed'));
+      mockMobileSecurityAPI.validateToken.mockRejectedValue(
+        new Error('Validation failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -569,7 +593,9 @@ describe('SecureAuth Zustand Store', () => {
     });
 
     it('should handle rotation check errors', async () => {
-      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(new Error('Check failed'));
+      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(
+        new Error('Check failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -621,7 +647,9 @@ describe('SecureAuth Zustand Store', () => {
       });
 
       // Mock refresh to fail
-      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(new Error('Refresh failed'));
+      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(
+        new Error('Refresh failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -634,7 +662,9 @@ describe('SecureAuth Zustand Store', () => {
     });
 
     it('should handle hydration errors', async () => {
-      mockSecureTokenStorage.getTokens.mockRejectedValue(new Error('Storage error'));
+      mockSecureTokenStorage.getTokens.mockRejectedValue(
+        new Error('Storage error')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -652,10 +682,14 @@ describe('SecureAuth Zustand Store', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       // Set an error state
-      mockMobileSecurityAPI.registerDevice.mockRejectedValue(new Error('Test error'));
-      
+      mockMobileSecurityAPI.registerDevice.mockRejectedValue(
+        new Error('Test error')
+      );
+
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow();
       });
 
       expect(result.current.error).toBe('Test error');
@@ -819,7 +853,9 @@ describe('SecureAuth Zustand Store', () => {
         await signIn('test@example.com', 'password');
       });
 
-      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(new Error('Rotation check failed'));
+      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(
+        new Error('Rotation check failed')
+      );
 
       tokenRotationService.start();
 

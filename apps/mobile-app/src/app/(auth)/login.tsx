@@ -6,12 +6,12 @@ import { Alert, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
+import { SocialLogin } from '@/components/social-login';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FocusAwareStatusBar } from '@/components/ui/focus-aware-status-bar';
 import { ControlledInput } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { SocialLogin } from '@/components/social-login';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 const loginSchema = z.object({

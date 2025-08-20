@@ -1,8 +1,9 @@
 import React from 'react';
 import { Alert, Linking } from 'react-native';
+
 import { Button, Text, View } from '@/components/ui';
-import type { SocialProvider } from '@/features/auth/types';
 import { AuthApi } from '@/features/auth/services/api';
+import type { SocialProvider } from '@/features/auth/types';
 
 interface SocialLoginProps {
   onSocialLoginSuccess: (authData: any) => void;
@@ -30,7 +31,10 @@ const socialProviders: SocialProvider[] = [
   },
 ];
 
-export const SocialLogin = ({ onSocialLoginSuccess, onSocialLoginError }: SocialLoginProps) => {
+export const SocialLogin = ({
+  onSocialLoginSuccess,
+  onSocialLoginError,
+}: SocialLoginProps) => {
   const handleSocialLogin = async (provider: SocialProvider) => {
     try {
       // Step 1: Initialize OAuth flow
@@ -56,7 +60,7 @@ export const SocialLogin = ({ onSocialLoginSuccess, onSocialLoginError }: Social
       // Note: In a real implementation, you would need to handle the callback
       // This would typically involve deep linking or a custom URL scheme
       // For now, this is a basic structure showing the OAuth initialization
-      
+
       Alert.alert(
         'OAuth Started',
         `Please complete authentication in your browser. State: ${state}`,
@@ -78,13 +82,20 @@ export const SocialLogin = ({ onSocialLoginSuccess, onSocialLoginError }: Social
                     onPress: async (code) => {
                       if (code) {
                         try {
-                          const authResponse = await AuthApi.completeOAuth(provider.id, {
-                            code,
-                            state,
-                          });
+                          const authResponse = await AuthApi.completeOAuth(
+                            provider.id,
+                            {
+                              code,
+                              state,
+                            }
+                          );
                           onSocialLoginSuccess(authResponse);
                         } catch (error) {
-                          onSocialLoginError(error instanceof Error ? error.message : 'OAuth completion failed');
+                          onSocialLoginError(
+                            error instanceof Error
+                              ? error.message
+                              : 'OAuth completion failed'
+                          );
                         }
                       }
                     },
@@ -101,16 +112,18 @@ export const SocialLogin = ({ onSocialLoginSuccess, onSocialLoginError }: Social
         ]
       );
     } catch (error) {
-      onSocialLoginError(error instanceof Error ? error.message : 'Social login failed');
+      onSocialLoginError(
+        error instanceof Error ? error.message : 'Social login failed'
+      );
     }
   };
 
   return (
     <View className="mt-6">
-      <View className="flex-row items-center mb-4">
-        <View className="flex-1 h-px bg-gray-300" />
-        <Text className="mx-4 text-gray-500 text-sm">Or continue with</Text>
-        <View className="flex-1 h-px bg-gray-300" />
+      <View className="mb-4 flex-row items-center">
+        <View className="h-px flex-1 bg-gray-300" />
+        <Text className="mx-4 text-sm text-gray-500">Or continue with</Text>
+        <View className="h-px flex-1 bg-gray-300" />
       </View>
 
       <View className="space-y-3">
@@ -120,7 +133,7 @@ export const SocialLogin = ({ onSocialLoginSuccess, onSocialLoginError }: Social
             label={`${provider.icon} Continue with ${provider.name}`}
             variant="outline"
             onPress={() => handleSocialLogin(provider)}
-            className="w-full p-4 border border-gray-300 rounded-lg"
+            className="w-full rounded-lg border border-gray-300 p-4"
             style={{ borderColor: provider.color }}
           />
         ))}

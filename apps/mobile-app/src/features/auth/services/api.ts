@@ -4,9 +4,9 @@ import type {
   AuthResponse,
   InvitationAcceptance,
   LoginCredentials,
-  User,
-  OAuthInitResponse,
   OAuthCallbackData,
+  OAuthInitResponse,
+  User,
 } from '../types';
 
 /**
@@ -59,7 +59,10 @@ export class AuthApi {
     provider: 'google' | 'facebook' | 'instagram',
     data: OAuthCallbackData
   ): Promise<AuthResponse> {
-    const response = await client.post(`/mobile/oauth/${provider}/callback`, data);
+    const response = await client.post(
+      `/mobile/oauth/${provider}/callback`,
+      data
+    );
     return response.data;
   }
 

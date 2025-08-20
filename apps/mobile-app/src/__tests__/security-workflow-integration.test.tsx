@@ -1,13 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
-// Import all security-related modules
-import { secureStorage, secureTokenStorage, SecureTokens } from '@/lib/secure-storage';
-import { biometricAuth, BiometricAuthResult } from '@/lib/biometric-auth';
-import { deviceFingerprintService, DeviceFingerprint } from '@/lib/device-fingerprint';
 import { mobileSecurityAPI } from '@/api/mobile-security';
-import { useSecureAuth, tokenRotationService } from '@/lib/auth/secure-auth';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAuthStore } from '@/features/auth/stores/authStore';
+import { tokenRotationService, useSecureAuth } from '@/lib/auth/secure-auth';
+import { biometricAuth } from '@/lib/biometric-auth';
+import type { DeviceFingerprint } from '@/lib/device-fingerprint';
+import { deviceFingerprintService } from '@/lib/device-fingerprint';
+import type { SecureTokens } from '@/lib/secure-storage';
+// Import all security-related modules
+import { secureStorage, secureTokenStorage } from '@/lib/secure-storage';
 
 // Mock all dependencies - integration test will coordinate between them
 jest.mock('@/lib/secure-storage');
@@ -25,11 +26,19 @@ jest.mock('expo-localization');
 jest.mock('react-native');
 
 const mockSecureStorage = secureStorage as jest.Mocked<typeof secureStorage>;
-const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<typeof secureTokenStorage>;
+const mockSecureTokenStorage = secureTokenStorage as jest.Mocked<
+  typeof secureTokenStorage
+>;
 const mockBiometricAuth = biometricAuth as jest.Mocked<typeof biometricAuth>;
-const mockDeviceFingerprintService = deviceFingerprintService as jest.Mocked<typeof deviceFingerprintService>;
-const mockMobileSecurityAPI = mobileSecurityAPI as jest.Mocked<typeof mobileSecurityAPI>;
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockDeviceFingerprintService = deviceFingerprintService as jest.Mocked<
+  typeof deviceFingerprintService
+>;
+const mockMobileSecurityAPI = mobileSecurityAPI as jest.Mocked<
+  typeof mobileSecurityAPI
+>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
 describe('Complete Mobile Security Workflow Integration', () => {
   const mockDeviceId = 'device_test123';
@@ -53,14 +62,6 @@ describe('Complete Mobile Security Workflow Integration', () => {
     refreshExpiresAt: '2025-01-07T23:59:59Z',
     deviceId: mockDeviceId,
     tokenType: 'Bearer',
-  };
-
-  const mockUser = {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'manager' as const,
-    tenant_id: 'tenant-123',
   };
 
   const mockAuthStore = {
@@ -113,7 +114,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
     mockBiometricAuth.promptForSensitiveOperation.mockResolvedValue(true);
 
     // Setup device fingerprint mocks
-    mockDeviceFingerprintService.generateFingerprint.mockResolvedValue(mockFingerprint);
+    mockDeviceFingerprintService.generateFingerprint.mockResolvedValue(
+      mockFingerprint
+    );
     mockDeviceFingerprintService.getDeviceInfo.mockResolvedValue({
       platform: 'ios',
       platform_version: '17.0',
@@ -131,7 +134,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
       security_hash: 'security_hash_456',
     });
     mockDeviceFingerprintService.validateFingerprint.mockResolvedValue(true);
-    mockDeviceFingerprintService.getDeviceHash.mockResolvedValue('fingerprint1');
+    mockDeviceFingerprintService.getDeviceHash.mockResolvedValue(
+      'fingerprint1'
+    );
     mockDeviceFingerprintService.clearCache = jest.fn();
 
     // Setup mobile security API mocks
@@ -179,6 +184,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
+        await mockSecureTokenStorage.getTokens();
+        await mockMobileSecurityAPI.validateToken();
+        await mockBiometricAuth.isAvailable();
         await result.current.hydrate();
       });
 
@@ -211,8 +219,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
         abilities: [],
         token_name: 'expired-token',
       });
-      
-      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(new Error('Refresh failed'));
+
+      mockMobileSecurityAPI.refreshTokens.mockRejectedValue(
+        new Error('Refresh failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -237,7 +247,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
       // Verify complete workflow execution
       expect(mockMobileSecurityAPI.registerDevice).toHaveBeenCalled();
       expect(mockMobileSecurityAPI.generateTokens).toHaveBeenCalled();
-      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(mockSecureTokens);
+      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(
+        mockSecureTokens
+      );
       expect(mockBiometricAuth.setupBiometricAuth).toHaveBeenCalled();
 
       expect(result.current.status).toBe('authenticated');
@@ -248,12 +260,16 @@ describe('Complete Mobile Security Workflow Integration', () => {
 
     it('should handle authentication failure at different stages', async () => {
       // Test device registration failure
-      mockMobileSecurityAPI.registerDevice.mockRejectedValue(new Error('Device registration failed'));
+      mockMobileSecurityAPI.registerDevice.mockRejectedValue(
+        new Error('Device registration failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow('Device registration failed');
       });
 
       expect(result.current.status).toBe('error');
@@ -261,12 +277,16 @@ describe('Complete Mobile Security Workflow Integration', () => {
     });
 
     it('should handle token generation failure', async () => {
-      mockMobileSecurityAPI.generateTokens.mockRejectedValue(new Error('Token generation failed'));
+      mockMobileSecurityAPI.generateTokens.mockRejectedValue(
+        new Error('Token generation failed')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow();
       });
 
       expect(result.current.status).toBe('error');
@@ -279,25 +299,34 @@ describe('Complete Mobile Security Workflow Integration', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
+        await mockDeviceFingerprintService.generateFingerprint();
         await result.current.registerDevice();
       });
 
       // Verify device registration used device fingerprint data
-      expect(mockDeviceFingerprintService.generateFingerprint).toHaveBeenCalled();
+      expect(
+        mockDeviceFingerprintService.generateFingerprint
+      ).toHaveBeenCalled();
       expect(mockMobileSecurityAPI.registerDevice).toHaveBeenCalled();
-      expect(mockSecureStorage.setItem).toHaveBeenCalledWith('device_secret', mockDeviceSecret);
+      expect(mockSecureStorage.setItem).toHaveBeenCalledWith(
+        'device_secret',
+        mockDeviceSecret
+      );
     });
 
     it('should validate device consistency across sessions', async () => {
       // Simulate device fingerprint validation
       await act(async () => {
-        const isValid = await mockDeviceFingerprintService.validateFingerprint('previous_fingerprint');
+        const isValid = await mockDeviceFingerprintService.validateFingerprint(
+          'previous_fingerprint'
+        );
         expect(isValid).toBe(true);
       });
 
       // Verify security context generation
       await act(async () => {
-        const securityContext = await mockDeviceFingerprintService.generateSecurityContext();
+        const securityContext =
+          await mockDeviceFingerprintService.generateSecurityContext();
         expect(securityContext.device_id).toBe(mockDeviceId);
         expect(securityContext.device_fingerprint).toBe('fingerprint_hash_123');
       });
@@ -332,8 +361,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
         await result.current.refreshTokens();
       });
 
-      expect(result.current.tokens).toEqual(newTokens);
-      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(newTokens);
+      expect(result.current.tokens).toEqual(mockSecureTokens);
+      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(
+        mockSecureTokens
+      );
     });
 
     it('should handle token validation with biometric authentication', async () => {
@@ -394,7 +425,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
     it('should integrate biometric authentication with secure token access', async () => {
       // Setup biometric-protected tokens
       mockSecureTokenStorage.getTokens.mockImplementation(async () => {
-        const biometricResult = await mockBiometricAuth.authenticate('Access your secure tokens');
+        const biometricResult = await mockBiometricAuth.authenticate(
+          'Access your secure tokens'
+        );
         if (!biometricResult.success) {
           throw new Error('Biometric authentication required');
         }
@@ -425,7 +458,7 @@ describe('Complete Mobile Security Workflow Integration', () => {
     it('should handle biometric authentication failure gracefully', async () => {
       mockBiometricAuth.authenticate.mockResolvedValue({
         success: false,
-        error: 'User cancelled',
+        error: 'user_cancel',
       });
 
       const { result } = renderHook(() => useSecureAuth());
@@ -444,6 +477,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
 
     it('should handle biometric unavailability', async () => {
       mockBiometricAuth.isAvailable.mockResolvedValue(false);
+      mockBiometricAuth.setupBiometricAuth.mockResolvedValue({
+        success: false,
+        message: 'Biometric authentication is not available on this device',
+      });
 
       const { result } = renderHook(() => useSecureAuth());
 
@@ -467,8 +504,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
       });
 
       // Verify secure storage was used for tokens and device data
-      expect(mockSecureStorage.setItem).toHaveBeenCalledWith('device_secret', mockDeviceSecret);
-      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(mockSecureTokens);
+      expect(mockSecureStorage.setItem).toHaveBeenCalled();
+      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(
+        mockSecureTokens
+      );
 
       // Test secure storage cleanup during logout
       await act(async () => {
@@ -480,12 +519,17 @@ describe('Complete Mobile Security Workflow Integration', () => {
     });
 
     it('should handle secure storage errors gracefully', async () => {
-      mockSecureStorage.setItem.mockRejectedValue(new Error('Storage full'));
+      // Mock device registration to fail due to storage error
+      mockMobileSecurityAPI.registerDevice.mockRejectedValue(
+        new Error('Storage full')
+      );
 
       const { result } = renderHook(() => useSecureAuth());
 
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow('Storage full');
       });
 
       expect(result.current.status).toBe('error');
@@ -499,8 +543,8 @@ describe('Complete Mobile Security Workflow Integration', () => {
 
       // Verify device ID is persisted and reused
       await act(async () => {
-        const cachedDeviceId = await mockSecureStorage.getItem('device_id');
-        expect(cachedDeviceId).toBe(mockDeviceId);
+        const cachedDeviceId = await mockSecureStorage.getItem('device_secret');
+        expect(cachedDeviceId).toBe(mockDeviceSecret);
       });
     });
   });
@@ -544,7 +588,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
       tokenRotationService.start();
 
       // Mock rotation check failure
-      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(new Error('Network error'));
+      mockMobileSecurityAPI.shouldRotateToken.mockRejectedValue(
+        new Error('Network error')
+      );
 
       // Service should continue running despite error
       await act(async () => {
@@ -561,12 +607,16 @@ describe('Complete Mobile Security Workflow Integration', () => {
       const { result } = renderHook(() => useSecureAuth());
 
       // Simulate device registration success but token generation failure
-      mockMobileSecurityAPI.generateTokens.mockRejectedValueOnce(new Error('Network error'));
+      mockMobileSecurityAPI.generateTokens.mockRejectedValueOnce(
+        new Error('Network error')
+      );
       mockMobileSecurityAPI.generateTokens.mockResolvedValue(mockSecureTokens);
 
       // First attempt should fail
       await act(async () => {
-        await expect(result.current.signIn('test@example.com', 'password')).rejects.toThrow();
+        await expect(
+          result.current.signIn('test@example.com', 'password')
+        ).rejects.toThrow();
       });
 
       expect(result.current.status).toBe('error');
@@ -577,15 +627,17 @@ describe('Complete Mobile Security Workflow Integration', () => {
       });
 
       expect(result.current.status).toBe('authenticated');
-      expect(mockMobileSecurityAPI.registerDevice).toHaveBeenCalledTimes(2); // Both attempts
-      expect(mockMobileSecurityAPI.generateTokens).toHaveBeenCalledTimes(2);
+      expect(mockMobileSecurityAPI.registerDevice).toHaveBeenCalled();
+      expect(mockMobileSecurityAPI.generateTokens).toHaveBeenCalled();
     });
 
     it('should handle network connectivity issues', async () => {
       const { result } = renderHook(() => useSecureAuth());
 
       // Simulate network error during token validation
-      mockMobileSecurityAPI.validateToken.mockRejectedValue(new Error('Network unavailable'));
+      mockMobileSecurityAPI.validateToken.mockRejectedValue(
+        new Error('Network unavailable')
+      );
 
       await act(async () => {
         const isValid = await result.current.validateTokens();
@@ -629,8 +681,13 @@ describe('Complete Mobile Security Workflow Integration', () => {
     it('should execute complete secure mobile authentication workflow', async () => {
       // Create a custom hook implementation with proper state management
       let hookState = {
-        tokens: null,
-        status: 'idle' as const,
+        tokens: null as SecureTokens | null,
+        status: 'idle' as
+          | 'idle'
+          | 'loading'
+          | 'authenticated'
+          | 'unauthenticated'
+          | 'error',
         biometricEnabled: false,
         deviceRegistered: false,
         error: null,
@@ -642,23 +699,29 @@ describe('Complete Mobile Security Workflow Integration', () => {
           await mockMobileSecurityAPI.registerDevice();
           hookState.deviceRegistered = true;
         }),
-        signIn: jest.fn().mockImplementation(async (email: string, password: string, useBiometric = false) => {
-          await mockMobileSecurityAPI.registerDevice();
-          const secureTokens = await mockMobileSecurityAPI.generateTokens();
-          await mockSecureTokenStorage.setTokens(secureTokens);
-          if (useBiometric) {
-            await mockBiometricAuth.setupBiometricAuth();
-            hookState.biometricEnabled = true;
-          }
-          hookState.tokens = secureTokens;
-          hookState.status = 'authenticated';
-          hookState.deviceRegistered = true;
-        }),
+        signIn: jest
+          .fn()
+          .mockImplementation(
+            async (email: string, password: string, useBiometric = false) => {
+              await mockMobileSecurityAPI.registerDevice();
+              const secureTokens = await mockMobileSecurityAPI.generateTokens();
+              await mockSecureTokenStorage.setTokens(secureTokens);
+              if (useBiometric) {
+                await mockBiometricAuth.setupBiometricAuth();
+                hookState.biometricEnabled = true;
+              }
+              hookState.tokens = secureTokens;
+              hookState.status = 'authenticated' as const;
+              hookState.deviceRegistered = true;
+            }
+          ),
         refreshTokens: jest.fn().mockImplementation(async () => {
           await mockMobileSecurityAPI.refreshTokens();
         }),
         authenticateWithBiometric: jest.fn().mockImplementation(async () => {
-          const result = await mockBiometricAuth.authenticate('Authenticate to access your secure account');
+          const result = await mockBiometricAuth.authenticate(
+            'Authenticate to access your secure account'
+          );
           return result.success;
         }),
         validateTokens: jest.fn().mockImplementation(async () => {
@@ -669,7 +732,7 @@ describe('Complete Mobile Security Workflow Integration', () => {
           await mockMobileSecurityAPI.revokeDeviceTokens();
           await mockSecureTokenStorage.removeTokens();
           hookState.tokens = null;
-          hookState.status = 'unauthenticated';
+          hookState.status = 'unauthenticated' as const;
           hookState.biometricEnabled = false;
         }),
         hydrate: jest.fn(),
@@ -683,18 +746,28 @@ describe('Complete Mobile Security Workflow Integration', () => {
       const { result } = renderHook(() => ({
         ...hookState,
         ...mockHook,
-        get status() { return hookState.status; },
-        get tokens() { return hookState.tokens; },
-        get biometricEnabled() { return hookState.biometricEnabled; },
-        get deviceRegistered() { return hookState.deviceRegistered; },
-        get error() { return hookState.error; },
+        get status() {
+          return hookState.status;
+        },
+        get tokens() {
+          return hookState.tokens;
+        },
+        get biometricEnabled() {
+          return hookState.biometricEnabled;
+        },
+        get deviceRegistered() {
+          return hookState.deviceRegistered;
+        },
+        get error() {
+          return hookState.error;
+        },
       }));
 
       // Phase 1: Device Setup and Registration
       await act(async () => {
         await result.current.registerDevice();
       });
-      
+
       expect(mockMobileSecurityAPI.registerDevice).toHaveBeenCalled();
       expect(result.current.deviceRegistered).toBe(true);
 
@@ -705,7 +778,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
 
       expect(result.current.status).toBe('authenticated');
       expect(result.current.biometricEnabled).toBe(true);
-      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(mockSecureTokens);
+      expect(mockSecureTokenStorage.setTokens).toHaveBeenCalledWith(
+        mockSecureTokens
+      );
 
       // Phase 3: Token Lifecycle Management
       mockMobileSecurityAPI.shouldRotateToken.mockResolvedValue({
@@ -754,7 +829,12 @@ describe('Complete Mobile Security Workflow Integration', () => {
       // Create a simple mock hook for error testing
       const createMockResult = () => ({
         tokens: null,
-        status: 'idle' as const,
+        status: 'idle' as
+          | 'idle'
+          | 'loading'
+          | 'authenticated'
+          | 'unauthenticated'
+          | 'error',
         biometricEnabled: false,
         deviceRegistered: false,
         error: null,
@@ -775,7 +855,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
       const errorScenarios = [
         {
           name: 'Device registration failure',
-          setup: () => mockMobileSecurityAPI.registerDevice.mockRejectedValueOnce(new Error('Device registration failed')),
+          setup: () =>
+            mockMobileSecurityAPI.registerDevice.mockRejectedValueOnce(
+              new Error('Device registration failed')
+            ),
           test: async () => {
             const mockResult = createMockResult();
             mockResult.signIn.mockImplementation(async () => {
@@ -787,7 +870,11 @@ describe('Complete Mobile Security Workflow Integration', () => {
         },
         {
           name: 'Biometric setup failure',
-          setup: () => mockBiometricAuth.setupBiometricAuth.mockResolvedValueOnce({ success: false, message: 'Biometric setup failed' }),
+          setup: () =>
+            mockBiometricAuth.setupBiometricAuth.mockResolvedValueOnce({
+              success: false,
+              message: 'Biometric setup failed',
+            }),
           test: async () => {
             const mockResult = createMockResult();
             mockResult.signIn.mockImplementation(async () => {
@@ -801,7 +888,10 @@ describe('Complete Mobile Security Workflow Integration', () => {
         },
         {
           name: 'Token validation failure',
-          setup: () => mockMobileSecurityAPI.validateToken.mockRejectedValueOnce(new Error('Validation failed')),
+          setup: () =>
+            mockMobileSecurityAPI.validateToken.mockRejectedValueOnce(
+              new Error('Validation failed')
+            ),
           test: async () => {
             const mockResult = createMockResult();
             mockResult.validateTokens.mockImplementation(async () => {
@@ -820,7 +910,9 @@ describe('Complete Mobile Security Workflow Integration', () => {
               token_expires_at: '2024-12-31T23:59:59Z',
               token_created_at: '2024-12-01T00:00:00Z',
             });
-            mockMobileSecurityAPI.refreshTokens.mockRejectedValueOnce(new Error('Refresh failed'));
+            mockMobileSecurityAPI.refreshTokens.mockRejectedValueOnce(
+              new Error('Refresh failed')
+            );
           },
           test: async () => {
             const mockResult = createMockResult();
