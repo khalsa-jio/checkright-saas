@@ -1,0 +1,11 @@
+.vscode/
+.bmad-core/
+.claude/
+.playwright-mcp/
+CLAUDE.md
+
+node_modules/
+vendor/
+dist/
+coverage/
+build/

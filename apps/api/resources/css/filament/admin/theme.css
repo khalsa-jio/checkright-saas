@@ -1,0 +1,120 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/* Tailwind 4 specific tenant login layout using @utility directives */
+@utility tenant-login-container {
+    min-height: 100vh;
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+}
+
+@utility tenant-login-left {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 1rem;
+    background-color: white;
+    flex-shrink: 0;
+}
+
+@utility tenant-login-right {
+    display: none;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Responsive design using Tailwind 4 @media approach */
+@media (min-width: 1024px) {
+    .tenant-login-container {
+        flex-direction: row;
+    }
+    
+    .tenant-login-left {
+        width: 50%;
+        padding-left: 5rem;
+        padding-right: 5rem;
+    }
+    
+    .tenant-login-right {
+        display: flex;
+        width: 50%;
+    }
+}
+
+@media (min-width: 640px) {
+    .tenant-login-left {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .tenant-login-left {
+        padding-left: 6rem;
+        padding-right: 6rem;
+    }
+}
+
+/* Dark mode using Tailwind 4 approach */
+@media (prefers-color-scheme: dark) {
+    .tenant-login-left {
+        background-color: rgb(17 24 39);
+    }
+}
+
+/* Filament 4 specific overrides using CSS hooks */
+.fi-simple-layout {
+    min-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.fi-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+}
+
+.fi-fo-component {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.fi-fo {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+/* Enhanced button styling for Filament 4 */
+.fi-btn {
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Override Filament's default layout constraints for tenant login */
+.fi-simple-layout .fi-page {
+    container-type: size;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100vh !important;
+}
+
+/* Prevent layout issues */
+html, body {
+    overflow-x: hidden;
+    height: 100%;
+}
+
+/* Fixed positioning override for tenant layout */
+.fixed.inset-0 {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    overflow: auto;
+    z-index: 50;
+}

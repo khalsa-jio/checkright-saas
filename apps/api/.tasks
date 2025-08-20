@@ -1,0 +1,6 @@
+1. [x] Replace inline styles in social login buttons with Tailwind v4 classes
+2. [x] Create proper hover states using Tailwind classes
+3. [x] Update button focus states with Tailwind focus utilities
+4. [x] Test the styling in browser to ensure buttons display correctly
+5. [x] Update tests to verify new Tailwind classes are present
+6. [x] Run tests to ensure all styling tests pass

@@ -1,0 +1,26 @@
+# Global code owners
+
+* @khalsa-jio
+
+## API specific
+
+/apps/api/ @khalsa-jio
+
+## Mobile app specific
+
+/apps/mobile-app/ @khalsa-jio
+
+## GitHub workflows and actions
+
+/.github/ @khalsa-jio
+
+## Documentation
+
+/docs/ @khalsa-jio
+*.md @khalsa-jio
+
+## Configuration files
+
+*.json @khalsa-jio
+*.yml @khalsa-jio
+*.yaml @khalsa-jio

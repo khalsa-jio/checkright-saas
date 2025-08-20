@@ -1,0 +1,52 @@
+# Adapted from CheckRight starter pack for monorepo
+# Original source: https://github.com/checkright/react-native-template-checkright
+
+name: Mobile App - Type Check (TSC)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile-app/**'
+      - '.github/workflows/mobile-type-check.yml'
+      - '.github/actions/setup-node-pnpm-install/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile-app/**'
+      - '.github/workflows/mobile-type-check.yml'
+      - '.github/actions/setup-node-pnpm-install/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  type-check:
+    name: Mobile Type Check (TSC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout project repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node + PNPM + install deps
+        uses: ./.github/actions/setup-node-pnpm-install
+
+      - name: 📦 Install Reviewdog
+        if: github.event_name == 'pull_request'
+        uses: reviewdog/action-setup@v1
+
+      - name: 🏃‍♂️ Run TypeScript PR
+        if: github.event_name == 'pull_request'
+        working-directory: apps/mobile-app
+        run: |
+          pnpm type-check | reviewdog -name="tsc" -efm="%f(%l,%c): error TS%n: %m" -reporter="github-pr-review" -filter-mode="nofilter" -fail-on-error -tee
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏃‍♂️ Run TypeScript Push
+        if: github.event_name != 'pull_request'
+        working-directory: apps/mobile-app
+        run: pnpm type-check

@@ -1,0 +1,111 @@
+# Adapted from CheckRight starter pack for monorepo
+# Handles releases for both API and Mobile App
+
+name: Monorepo Release Management
+
+on:
+  push:
+    tags:
+      - 'api-v*'
+      - 'mobile-v*'
+      - 'v*'
+
+jobs:
+  detect-release-type:
+    name: Detect Release Type
+    runs-on: ubuntu-latest
+    outputs:
+      release-type: ${{ steps.detect.outputs.type }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - name: 🔍 Detect release type from tag
+        id: detect
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Tag: $TAG_NAME"
+          
+          if [[ $TAG_NAME == api-v* ]]; then
+            echo "type=api" >> $GITHUB_OUTPUT
+            echo "version=${TAG_NAME#api-v}" >> $GITHUB_OUTPUT
+          elif [[ $TAG_NAME == mobile-v* ]]; then
+            echo "type=mobile" >> $GITHUB_OUTPUT
+            echo "version=${TAG_NAME#mobile-v}" >> $GITHUB_OUTPUT
+          elif [[ $TAG_NAME == v* ]]; then
+            echo "type=monorepo" >> $GITHUB_OUTPUT
+            echo "version=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+            echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
+          fi
+
+  api-release:
+    name: API Release
+    runs-on: ubuntu-latest
+    needs: detect-release-type
+    if: needs.detect-release-type.outputs.release-type == 'api' || needs.detect-release-type.outputs.release-type == 'monorepo'
+    permissions:
+      contents: write
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏗️ Create API Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: "API Release v${{ needs.detect-release-type.outputs.version }}"
+          generateReleaseNotes: true
+          body: |
+            ## 🚀 CheckRight API v${{ needs.detect-release-type.outputs.version }}
+            
+            This release contains updates to the Laravel API backend.
+            
+            ### 📋 What's Included
+            - Backend API improvements
+            - Database migrations (if any)
+            - Security updates
+            - Performance optimizations
+            
+            ### 🔄 Deployment Notes
+            - Run `php artisan migrate` after deployment
+            - Clear cache with `php artisan cache:clear`
+            - Update environment variables if needed
+          draft: false
+
+  mobile-release:
+    name: Mobile App Release
+    runs-on: ubuntu-latest
+    needs: detect-release-type
+    if: needs.detect-release-type.outputs.release-type == 'mobile' || needs.detect-release-type.outputs.release-type == 'monorepo'
+    permissions:
+      contents: write
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📱 Create Mobile Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: "Mobile App v${{ needs.detect-release-type.outputs.version }}"
+          generateReleaseNotes: true
+          body: |
+            ## 📱 CheckRight Mobile App v${{ needs.detect-release-type.outputs.version }}
+            
+            This release contains updates to the React Native mobile application.
+            
+            ### 📋 What's Included
+            - Mobile app features and improvements
+            - UI/UX enhancements
+            - Security updates
+            - Performance optimizations
+            
+            ### 📱 App Store Status
+            - Check EAS builds for store submission status
+            - iOS App Store review may take 24-48 hours
+            - Android Play Store updates typically live within 2-4 hours
+          draft: false

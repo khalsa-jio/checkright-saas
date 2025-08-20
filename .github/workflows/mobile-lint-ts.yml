@@ -1,0 +1,50 @@
+# Adapted from CheckRight starter pack for monorepo
+# Original source: https://github.com/checkright/react-native-template-checkright
+
+name: Mobile App - Lint TS (ESLint, Prettier)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile-app/**'
+      - '.github/workflows/mobile-lint-ts.yml'
+      - '.github/actions/setup-node-pnpm-install/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile-app/**'
+      - '.github/workflows/mobile-lint-ts.yml'
+      - '.github/actions/setup-node-pnpm-install/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  
+jobs:
+  lint:
+    name: Mobile Lint TS (ESLint, Prettier)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout project repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node + PNPM + install deps
+        uses: ./.github/actions/setup-node-pnpm-install
+
+      - name: 🏃‍♂️ Run ESLint PR
+        if: github.event_name == 'pull_request'
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          eslint_flags: 'apps/mobile-app --ext .js,.jsx,.ts,.tsx'
+          workdir: '.'
+
+      - name: 🏃‍♂️ Run ESLint Push
+        if: github.event_name != 'pull_request'
+        working-directory: apps/mobile-app
+        run: pnpm run lint

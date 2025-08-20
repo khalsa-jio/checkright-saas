@@ -1,0 +1,138 @@
+name: API - Tests (Pest & Quality)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api-tests.yml'
+
+jobs:
+  test:
+    name: API Tests & Quality
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: 📦 Cache Composer packages
+        uses: actions/cache@v3
+        with:
+          path: apps/api/vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: 📦 Install Composer dependencies
+        working-directory: apps/api
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: 📝 Copy environment file
+        working-directory: apps/api
+        run: cp .env.example .env
+
+      - name: 🔑 Generate application key
+        working-directory: apps/api
+        run: php artisan key:generate
+
+      - name: 🗄️ Set up database
+        working-directory: apps/api
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+        run: |
+          php artisan config:cache
+          php artisan migrate --force
+
+      - name: ✨ Run Laravel Pint (Code Style)
+        working-directory: apps/api
+        run: ./vendor/bin/pint --test
+
+      - name: 🧪 Run Pest Tests
+        working-directory: apps/api
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+        run: php artisan test --coverage
+
+      - name: 🔒 Security Audit
+        working-directory: apps/api
+        run: composer audit
+
+  code-quality:
+    name: Code Quality & Style Fixes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip
+
+      - name: 📦 Install Composer dependencies
+        working-directory: apps/api
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: ✨ Run Laravel Pint (Fix Code Style)
+        working-directory: apps/api
+        run: ./vendor/bin/pint --dirty
+
+      - name: 🔍 Check for changes
+        id: changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 💾 Commit style fixes
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "style: fix code formatting with Laravel Pint"
+          git push
